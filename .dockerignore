@@ -1,0 +1,9 @@
+node_modules
+dist
+.npm-cache
+.git
+.claude
+*.log
+Dockerfile
+docker-compose.yml
+.dockerignore

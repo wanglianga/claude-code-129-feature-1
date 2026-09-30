@@ -21,7 +21,7 @@ const TABS: { id: TabId; label: string; roles: Role[] }[] = [
   { id: 'formation', label: '走位编排', roles: ['leader', 'member'] },
   { id: 'costume', label: '服装管理', roles: ['costume', 'leader', 'member'] },
   { id: 'culture', label: '文化站审核', roles: ['culture'] },
-  { id: 'showday', label: '演出当天', roles: ['leader', 'volunteer', 'sound', 'member'] },
+  { id: 'showday', label: '演出当天', roles: ['leader', 'volunteer', 'sound', 'member', 'costume'] },
   { id: 'rooms', label: '排练室', roles: ['leader', 'culture'] },
   { id: 'archive', label: '演出档案', roles: ['leader', 'member', 'costume', 'culture', 'sound', 'volunteer'] },
   { id: 'notices', label: '通知中心', roles: ['leader', 'member', 'costume', 'culture', 'sound', 'volunteer'] },

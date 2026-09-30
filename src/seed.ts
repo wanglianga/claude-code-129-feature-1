@@ -11,22 +11,25 @@ export const teams: Team[] = [
 
 // ============ 队员 ============
 export const members: Member[] = [
-  { id: 'm1',  name: '王秀兰', age: 58, phone: '138-0201-1101', teamId: 't1', availableSlots: ['周一晚', '周三晚', '周五晚'], joinFormal: true,  healthNotes: '', frontRow: true },
-  { id: 'm2',  name: '张桂芳', age: 62, phone: '139-0201-1102', teamId: 't1', availableSlots: ['周一晚', '周三晚'], joinFormal: true,  healthNotes: '膝关节滑膜炎，避免久蹲', frontRow: true },
-  { id: 'm3',  name: '刘玉梅', age: 55, phone: '137-0201-1103', teamId: 't1', availableSlots: ['周一晚', '周五晚'], joinFormal: true,  healthNotes: '', frontRow: true },
-  { id: 'm4',  name: '陈秀英', age: 66, phone: '136-0201-1104', teamId: 't1', availableSlots: ['周三晚', '周五晚'], joinFormal: true,  healthNotes: '高血压，随身带药', frontRow: false },
-  { id: 'm5',  name: '杨丽华', age: 60, phone: '135-0201-1105', teamId: 't1', availableSlots: ['周一晚', '周三晚'], joinFormal: true,  healthNotes: '', frontRow: false },
-  { id: 'm6',  name: '赵淑珍', age: 68, phone: '134-0201-1106', teamId: 't1', availableSlots: ['周一晚'], joinFormal: true,  healthNotes: '膝盖退行性病变', frontRow: false },
-  { id: 'm7',  name: '孙凤霞', age: 57, phone: '133-0201-1107', teamId: 't1', availableSlots: ['周三晚', '周五晚'], joinFormal: true,  healthNotes: '', frontRow: false },
-  { id: 'm8',  name: '周玉琴', age: 63, phone: '132-0201-1108', teamId: 't1', availableSlots: ['周一晚', '周三晚'], joinFormal: true,  healthNotes: '腰椎间盘突出', frontRow: false },
-  { id: 'm9',  name: '吴桂英', age: 70, phone: '131-0201-1109', teamId: 't1', availableSlots: ['周三晚'], joinFormal: true,  healthNotes: '高血压、心脏支架术后，避免剧烈转身', frontRow: false },
-  { id: 'm10', name: '郑爱华', age: 54, phone: '130-0201-1110', teamId: 't1', availableSlots: ['周一晚', '周五晚'], joinFormal: true,  healthNotes: '', frontRow: false },
-  { id: 'm11', name: '马丽娟', age: 59, phone: '159-0201-1111', teamId: 't1', availableSlots: ['周三晚', '周五晚'], joinFormal: true,  healthNotes: '低血糖，需备糖果', frontRow: false },
-  { id: 'm12', name: '许凤仙', age: 65, phone: '158-0201-1112', teamId: 't1', availableSlots: ['周一晚', '周三晚'], joinFormal: false, healthNotes: '', frontRow: false },
-  { id: 'm13', name: '李建国', age: 61, phone: '157-0201-1113', teamId: 't2', availableSlots: ['周二晚', '周四晚'], joinFormal: true,  healthNotes: '', frontRow: true },
-  { id: 'm14', name: '高玉华', age: 64, phone: '156-0201-1114', teamId: 't2', availableSlots: ['周二晚', '周四晚'], joinFormal: true,  healthNotes: '肩周炎', frontRow: false },
-  { id: 'm15', name: '林淑华', age: 58, phone: '155-0201-1115', teamId: 't2', availableSlots: ['周二晚'], joinFormal: true,  healthNotes: '', frontRow: false },
-  { id: 'm16', name: '黄德海', age: 67, phone: '154-0201-1116', teamId: 't2', availableSlots: ['周四晚'], joinFormal: true,  healthNotes: '冠心病史，随身携带速效救心丸', frontRow: false },
+  { id: 'm1',  name: '王秀兰', age: 58, phone: '138-0201-1101', teamId: 't1', availableSlots: ['周一晚', '周三晚', '周五晚'], joinFormal: true,  healthNotes: '', frontRow: true,  heightCm: 162, proficiency: 5 },
+  { id: 'm2',  name: '张桂芳', age: 62, phone: '139-0201-1102', teamId: 't1', availableSlots: ['周一晚', '周三晚'], joinFormal: true,  healthNotes: '膝关节滑膜炎，避免久蹲', frontRow: true,  heightCm: 160, proficiency: 4 },
+  { id: 'm3',  name: '刘玉梅', age: 55, phone: '137-0201-1103', teamId: 't1', availableSlots: ['周一晚', '周五晚'], joinFormal: true,  healthNotes: '', frontRow: true,  heightCm: 161, proficiency: 5 },
+  { id: 'm4',  name: '陈秀英', age: 66, phone: '136-0201-1104', teamId: 't1', availableSlots: ['周三晚', '周五晚'], joinFormal: true,  healthNotes: '高血压，随身带药', frontRow: false, heightCm: 158, proficiency: 3 },
+  { id: 'm5',  name: '杨丽华', age: 60, phone: '135-0201-1105', teamId: 't1', availableSlots: ['周一晚', '周三晚'], joinFormal: true,  healthNotes: '', frontRow: false, heightCm: 159, proficiency: 4 },
+  { id: 'm6',  name: '赵淑珍', age: 68, phone: '134-0201-1106', teamId: 't1', availableSlots: ['周一晚'], joinFormal: true,  healthNotes: '膝盖退行性病变', frontRow: false, heightCm: 156, proficiency: 3 },
+  { id: 'm7',  name: '孙凤霞', age: 57, phone: '133-0201-1107', teamId: 't1', availableSlots: ['周三晚', '周五晚'], joinFormal: true,  healthNotes: '', frontRow: false, heightCm: 163, proficiency: 4 },
+  { id: 'm8',  name: '周玉琴', age: 63, phone: '132-0201-1108', teamId: 't1', availableSlots: ['周一晚', '周三晚'], joinFormal: true,  healthNotes: '腰椎间盘突出', frontRow: false, heightCm: 160, proficiency: 3 },
+  { id: 'm9',  name: '吴桂英', age: 70, phone: '131-0201-1109', teamId: 't1', availableSlots: ['周三晚'], joinFormal: true,  healthNotes: '高血压、心脏支架术后，避免剧烈转身', frontRow: false, heightCm: 155, proficiency: 3 },
+  { id: 'm10', name: '郑爱华', age: 54, phone: '130-0201-1110', teamId: 't1', availableSlots: ['周一晚', '周五晚'], joinFormal: true,  healthNotes: '', frontRow: false, heightCm: 164, proficiency: 5 },
+  { id: 'm11', name: '马丽娟', age: 59, phone: '159-0201-1111', teamId: 't1', availableSlots: ['周三晚', '周五晚'], joinFormal: true,  healthNotes: '低血糖，需备糖果', frontRow: false, heightCm: 161, proficiency: 4 },
+  { id: 'm12', name: '许凤仙', age: 65, phone: '158-0201-1112', teamId: 't1', availableSlots: ['周一晚', '周三晚'], joinFormal: false, healthNotes: '', frontRow: false, heightCm: 159, proficiency: 2 },
+  // 候补队员（已报名、暂未排入队形，演出前一天替位的人选池）
+  { id: 'm17', name: '何春梅', age: 56, phone: '150-0201-1117', teamId: 't1', availableSlots: ['周一晚', '周三晚', '周五晚'], joinFormal: true, healthNotes: '', frontRow: false, heightCm: 161, proficiency: 4 },
+  { id: 'm18', name: '郭晓梅', age: 49, phone: '150-0201-1118', teamId: 't1', availableSlots: ['周三晚'], joinFormal: true, healthNotes: '', frontRow: false, heightCm: 160, proficiency: 5 },
+  { id: 'm13', name: '李建国', age: 61, phone: '157-0201-1113', teamId: 't2', availableSlots: ['周二晚', '周四晚'], joinFormal: true,  healthNotes: '', frontRow: true,  heightCm: 170, proficiency: 5 },
+  { id: 'm14', name: '高玉华', age: 64, phone: '156-0201-1114', teamId: 't2', availableSlots: ['周二晚', '周四晚'], joinFormal: true,  healthNotes: '肩周炎', frontRow: false, heightCm: 162, proficiency: 4 },
+  { id: 'm15', name: '林淑华', age: 58, phone: '155-0201-1115', teamId: 't2', availableSlots: ['周二晚'], joinFormal: true,  healthNotes: '', frontRow: false, heightCm: 160, proficiency: 4 },
+  { id: 'm16', name: '黄德海', age: 67, phone: '154-0201-1116', teamId: 't2', availableSlots: ['周四晚'], joinFormal: true,  healthNotes: '冠心病史，随身携带速效救心丸', frontRow: false, heightCm: 168, proficiency: 3 },
 ]
 
 // ============ 报名记录（含服装尺码等） ============
@@ -44,6 +47,7 @@ export const enrollments: Enrollment[] = [
   enroll('m4', 'p1', 'XL'), enroll('m5', 'p1', 'S'), enroll('m6', 'p1', 'L'),
   enroll('m7', 'p1', 'M'), enroll('m8', 'p1', 'XL'), enroll('m9', 'p1', 'XXL'),
   enroll('m10', 'p1', 'S'), enroll('m11', 'p1', 'M'), enroll('m12', 'p1', 'L', false),
+  enroll('m17', 'p1', 'M'), enroll('m18', 'p1', 'M'),
   enroll('m1', 'p2', 'M'), enroll('m3', 'p2', 'M'), enroll('m5', 'p2', 'S'), enroll('m10', 'p2', 'S'),
   enroll('m13', 'p3', 'L'), enroll('m14', 'p3', 'M'), enroll('m15', 'p3', 'M'), enroll('m16', 'p3', 'XL'),
   enroll('m13', 'p4', 'L'), enroll('m14', 'p4', 'M'), enroll('m15', 'p4', 'M'), enroll('m16', 'p4', 'XL'),
@@ -67,12 +71,12 @@ const p1Segments: Segment[] = [
 export const programs: Program[] = [
   {
     id: 'p1', teamId: 't1', title: '丰收锣鼓', type: '广场舞', theme: '庆丰收·迎国庆',
-    stage: 'positioning', durationMin: 4,
+    stage: 'ready', durationMin: 4,
     soundNeeds: '需无线麦2支（队长口令）、低音炮、U盘播放+备用手机蓝牙',
     venue: '社区文化广场主舞台', venueApproval: 'approved',
     venueNote: '2026-09-18 审批通过；09-24 通知舞台由12米调整为9米宽',
     isAudition: false,
-    memberIds: ['m1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm8', 'm9', 'm10', 'm11', 'm12'],
+    memberIds: ['m1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm8', 'm9', 'm10', 'm11', 'm12', 'm17', 'm18'],
     musicVersions: p1Music,
     segments: p1Segments,
     formation: {
@@ -89,7 +93,9 @@ export const programs: Program[] = [
     },
     reviews: [
       { id: 'rv1', by: '文化站·陈老师', result: 'changes_requested', comment: '第3分钟鼓点过密建议精简；服装红色需与国庆主题一致，请调整后重新报审。', at: '2026-09-20 14:30' },
+      { id: 'rv2', by: '文化站·陈老师', result: 'approved', comment: '调整到位，服装与主题一致，准予演出。', at: '2026-09-26 10:15' },
     ],
+    substitutes: [],
     waitingOrder: 3, createdAt: '2026-09-10 09:00', showDate: '2026-10-01 19:00',
   },
   {
@@ -105,6 +111,7 @@ export const programs: Program[] = [
     segments: [],
     formation: { rows: 2, cols: 4, cells: [[null, null, null, null], [null, null, null, null]], changes: [] },
     reviews: [],
+    substitutes: [],
     waitingOrder: 0, createdAt: '2026-09-23 09:30', showDate: '2026-10-20 海选',
   },
   {
@@ -129,6 +136,7 @@ export const programs: Program[] = [
     reviews: [
       { id: 'rv2', by: '文化站·陈老师', result: 'approved', comment: '主题积极，准予演出。', at: '2026-09-08 11:00' },
     ],
+    substitutes: [],
     waitingOrder: 5, createdAt: '2026-09-01 09:00', showDate: '2026-09-17 19:30（已演出）',
   },
   {
@@ -153,6 +161,7 @@ export const programs: Program[] = [
     reviews: [
       { id: 'rv3', by: '文化站·陈老师', result: 'approved', comment: '节庆氛围好，准予演出。', at: '2026-09-21 10:00' },
     ],
+    substitutes: [],
     waitingOrder: 1, createdAt: '2026-09-12 09:00', showDate: '2026-10-01 19:00',
   },
 ]
@@ -161,17 +170,23 @@ export const programs: Program[] = [
 export const rehearsals: Rehearsal[] = [
   {
     id: 'r1', programId: 'p1', roomId: 'room1', date: '2026-09-21', timeSlot: '周一 19:00–20:30',
-    checkins: { m1: 'present', m2: 'present', m3: 'present', m4: 'present', m5: 'present', m6: 'present', m7: 'present', m8: 'leave', m9: 'present', m10: 'present', m11: 'present', m12: 'absent' },
+    checkins: { m1: 'present', m2: 'present', m3: 'present', m4: 'present', m5: 'present', m6: 'present', m7: 'present', m8: 'leave', m9: 'present', m10: 'present', m11: 'present', m12: 'absent', m17: 'present', m18: 'present' },
     note: '周玉琴家里临时有事请假；许凤仙未到（不参加正式演出，自行练习）',
   },
   {
     id: 'r2', programId: 'p1', roomId: 'room1', date: '2026-09-23', timeSlot: '周三 19:00–20:30',
-    checkins: { m1: 'present', m2: 'absent', m3: 'present', m4: 'present', m5: 'present', m6: 'present', m7: 'present', m8: 'present', m9: 'leave', m10: 'present', m11: 'present', m12: 'present' },
+    checkins: { m1: 'present', m2: 'absent', m3: 'present', m4: 'present', m5: 'present', m6: 'present', m7: 'present', m8: 'present', m9: 'leave', m10: 'present', m11: 'present', m12: 'present', m17: 'present', m18: 'present' },
     note: '张桂芳（前排）膝盖复查无法参加；吴桂英血压偏高提前离场，已提醒家属',
   },
   {
     id: 'r3', programId: 'p1', roomId: 'room1', date: '2026-09-28', timeSlot: '周一 19:00–20:30',
-    checkins: {}, note: '（待进行）重点合练队形变化·双龙出海',
+    checkins: { m1: 'present', m2: 'present', m3: 'present', m4: 'present', m5: 'present', m6: 'present', m7: 'present', m8: 'present', m9: 'present', m10: 'present', m11: 'present', m12: 'present', m17: 'present', m18: 'present' },
+    note: '重点合练队形变化·双龙出海，全员到齐；两名候补队员何春梅、郭晓梅跟练站位',
+  },
+  {
+    id: 'r6', programId: 'p1', roomId: 'room1', date: '2026-09-30', timeSlot: '周三 19:00–20:30',
+    checkins: { m1: 'present', m2: 'leave', m3: 'present', m4: 'present', m5: 'present', m6: 'present', m7: 'present', m8: 'present', m9: 'present', m10: 'present', m11: 'present', m12: 'present', m17: 'present', m18: 'absent' },
+    note: '演出前一天带装彩排：张桂芳（前排）家中急事临时请假，需安排替位；郭晓梅未到且电话未接通',
   },
   {
     id: 'r4', programId: 'p3', roomId: 'room2', date: '2026-09-15', timeSlot: '周二 19:00–20:30',
@@ -239,6 +254,7 @@ export const notices: Notice[] = [
   { id: 'n3', programId: 'p1', text: '《丰收锣鼓》曲目已更新为 V3 演出版（4′00″），请音响师替换播放文件，队员按新版本合练。', level: 'info', targets: ['sound', 'leader', 'member'], at: '2026-09-22 15:45', kind: 'general' },
   { id: 'n4', programId: null, text: '下次活动预告：10月15日重阳节慰问演出开始报名，请各队队长统计参加人数。', level: 'info', targets: ['leader', 'member'], at: '2026-09-23 10:00', kind: 'next' },
   { id: 'n5', programId: 'p4', text: '请1号节目《张灯结彩》演员到东侧候场区集合，志愿者注意搀扶黄德海老师。', level: 'urgent', targets: ['leader', 'volunteer', 'member'], at: '2026-10-01 18:40', kind: 'live' },
+  { id: 'n6', programId: 'p1', text: '张桂芳来电：明天（10月1日）演出家中临时有事无法参加，前排1号位缺人，请队长尽快在走位页安排临时替位。', level: 'urgent', targets: ['leader'], at: '2026-09-30 18:10', kind: 'substitute' },
 ]
 
 // ============ 现场照片（归档节目） ============

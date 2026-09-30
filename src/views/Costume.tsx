@@ -28,8 +28,10 @@ export default function Costume() {
     total: list.length,
     picked: list.filter((c) => c.pickedUp).length,
     returned: list.filter((c) => c.returned).length,
-    deposit: list.filter((c) => c.depositPaid).length,
+    deposit: list.filter((c) => c.depositPaid && !c.temporary).length,
     issues: list.filter((c) => c.sizeIssue).length,
+    temporary: list.filter((c) => c.temporary).length,
+    tempPending: list.filter((c) => c.temporary && !c.pickedUp).length,
   }
 
   return (
@@ -45,9 +47,15 @@ export default function Costume() {
             <span className="badge brand">已领 {stats.picked}/{stats.total}</span>
             <span className="badge green">已还 {stats.returned}/{stats.total}</span>
             {stats.issues > 0 && <span className="badge red">尺码问题 {stats.issues}</span>}
+            {stats.temporary > 0 && <span className="badge purple">替位候补 {stats.tempPending}/{stats.temporary} 待发</span>}
           </span>
         </div>
         <div className="muted mt8">每套服装押金 100 元，归还检查无损后退还。家属可凭队员姓名代领，系统记录代领人及关系。</div>
+        {stats.temporary > 0 && (
+          <div className="alert purple mt8">
+            有 {stats.temporary} 套临时候补服装（替位队员使用）：免收押金，请提前备好并在演出前发放，演出结束后随队统一回收。
+          </div>
+        )}
       </div>
 
       <div className="card">
@@ -62,14 +70,16 @@ export default function Costume() {
               const m = members.find((x) => x.id === c.memberId)!
               const manage = role === 'costume' || role === 'leader'
               return (
-                <tr key={c.memberId}>
-                  <td><b>{m.name}</b></td>
+                <tr key={c.memberId} style={c.temporary ? { background: 'var(--purple-soft)' } : undefined}>
+                  <td><b>{m.name}</b>{c.temporary && <span className="badge purple" style={{ marginLeft: 6 }}>临时候补</span>}</td>
                   <td>{m.age}</td>
                   <td><b>{c.size}</b></td>
                   <td>
-                    {c.depositPaid
-                      ? <span className="badge green">已交 ¥{c.deposit}</span>
-                      : <><span className="badge red">未交</span>{manage && <button className="btn sm mt8" onClick={() => payDeposit(c.memberId, c.programId)}>收押金</button>}</>}
+                    {c.temporary
+                      ? <span className="badge purple">候补免押金</span>
+                      : c.depositPaid
+                        ? <span className="badge green">已交 ¥{c.deposit}</span>
+                        : <><span className="badge red">未交</span>{manage && <button className="btn sm mt8" onClick={() => payDeposit(c.memberId, c.programId)}>收押金</button>}</>}
                   </td>
                   <td>
                     {c.pickedUp

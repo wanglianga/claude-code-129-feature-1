@@ -32,3 +32,4 @@ temp/
 *debug*
 *temp*
 *tmp*
+.npm-cache/

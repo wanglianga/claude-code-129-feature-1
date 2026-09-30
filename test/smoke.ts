@@ -1,4 +1,4 @@
-import { useStore, absentSet, placedSet, stageDone } from '../src/store'
+import { useStore, absentSet, placedSet, stageDone, activeSubs, riskySubs } from '../src/store'
 
 let pass = 0, fail = 0
 const assert = (cond: boolean, msg: string) => {
@@ -14,12 +14,51 @@ assert(useStore.getState().programs.find((p) => p.id === 'p2')!.memberIds.includ
 const c = useStore.getState().costumes.find((x) => x.memberId === 'm2' && x.programId === 'p2')
 assert(!!c && c.deposit === 100 && !c.depositPaid, '服装记录生成、押金100未交')
 
-console.log('2. 排练签到：请假/缺席 → 缺席集合')
-const r3 = useStore.getState().rehearsals.find((r) => r.id === 'r3')!
-s.checkin('r3', 'm2', 'leave')
-s.checkin('r3', 'm9', 'absent')
+console.log('2. 排练签到：请假/缺席 → 缺席集合（以最新一场 09-30 彩排 r6 为准）')
+const r6 = useStore.getState().rehearsals.find((r) => r.id === 'r6')!
+s.checkin('r6', 'm9', 'absent')
 const absent = absentSet(useStore.getState().rehearsals, 'p1')
 assert(absent.get('m2') === 'leave' && absent.get('m9') === 'absent', '请假与缺席被识别')
+
+console.log('2b. 临时替位：推荐 → 确认 → 走位/变化/名单/服装/清单通知/风险 → 撤销恢复')
+{
+  // 候选池：未占位的候补队员 m17、m18
+  const cands = s.rankSubstitutes('p1', 'm2')
+  assert(cands.length === 2 && cands.every((c) => c.memberId === 'm17' || c.memberId === 'm18'), '候选为两名未占位候补队员')
+  // m18：熟练度5但最后一次排练（r6 09-30）缺席；m17：熟练度4但全勤——综合评分 m18 仍居首（熟练度权重高）
+  assert(cands[0].memberId === 'm18', '综合评分最高者排第一')
+  assert(cands.find((c) => c.memberId === 'm18')!.attendedLast === false, 'm18 未参加最后一次排练被识别')
+  assert(cands.find((c) => c.memberId === 'm17')!.attendedLast === true, 'm17 参加了最后一次排练')
+  assert(Math.abs(cands[0].heightDiff) <= 1, '推荐者身高与请假者接近')
+
+  const err = s.confirmSubstitute('p1', 'm2', 'm18', '家中临时有事')
+  assert(err === null, '确认替位成功（无错误返回）')
+
+  const p1s = useStore.getState().programs.find((p) => p.id === 'p1')!
+  assert(p1s.formation.cells[0][0] === 'm18', '走位图更新：替位队员站上请假者前排1号位')
+  const sub = activeSubs(p1s)[0]
+  assert(!!sub && sub.subMemberId === 'm18' && sub.absentMemberId === 'm2' && sub.row === 0 && sub.col === 0, '替位记录正确（前排1号位）')
+  assert(sub.attendedLastRehearsal === false && sub.lastRehearsalDate === '2026-09-30', '记录未参加最后一次排练及日期')
+  assert(riskySubs(p1s).length === 1, '队长端风险集合包含该替位')
+  assert(p1s.formation.changes.every((c) => c.affectedBySub === sub.id), '队形变化被自动标记为受替位影响')
+  assert(sub.focusMemberIds.includes('m18'), '重点排练名单包含替位队员')
+  assert(sub.focusMemberIds.includes('m1'), '重点排练名单包含相邻配合队员（同排 m1）')
+
+  const tcos = useStore.getState().costumes.find((c) => c.memberId === 'm18' && c.programId === 'p1')!
+  assert(!!tcos && tcos.temporary === true && tcos.deposit === 0 && !tcos.pickedUp, '自动生成临时候补服装记录（免押金、待领取）')
+
+  const st1 = useStore.getState()
+  assert(st1.notices.some((n) => n.kind === 'substitute' && n.targets.includes('costume') && n.targets.includes('sound') && n.text.includes('演出清单更新')), '向替位队员/服装/音响下发更新后的演出清单')
+  assert(st1.notices.some((n) => n.kind === 'substitute' && n.level === 'urgent' && n.text.includes('未参加最后一次排练')), '生成未参加最后排练的风险提示')
+  assert(st1.formationLogs.some((l) => l.programId === 'p1' && l.text.includes('临时替位')), '生成走位调整记录（新走位图留痕）')
+
+  // 撤销：站位恢复、变化标记解除、替位标记取消
+  s.cancelSubstitute('p1', sub.id)
+  const p1r = useStore.getState().programs.find((p) => p.id === 'p1')!
+  assert(p1r.formation.cells[0][0] === 'm2', '撤销后原队员恢复站位')
+  assert(activeSubs(p1r).length === 0 && p1r.substitutes[0].cancelled === true, '替位标记为已撤销')
+  assert(p1r.formation.changes.every((c) => c.affectedBySub == null), '队形变化影响标记解除')
+}
 
 console.log('3. 走位：放置队员 + 每人唯一站位')
 s.assignCell('p2', 0, 0, 'm2')

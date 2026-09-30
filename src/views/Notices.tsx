@@ -3,7 +3,7 @@ import { useStore, healthWatch } from '../store'
 import { ROLE_LABEL, type Role } from '../types'
 
 const KIND_LABEL: Record<string, string> = {
-  general: '一般', health: '健康提醒', venue: '场地', costume: '服装', live: '现场', next: '下次活动',
+  general: '一般', health: '健康提醒', venue: '场地', costume: '服装', live: '现场', next: '下次活动', substitute: '临时替位',
 }
 
 export default function Notices() {
@@ -47,9 +47,9 @@ export default function Notices() {
           <h3>我的通知 <span className="sub">按当前角色（{ROLE_LABEL[role]}）过滤</span></h3>
           {mine.length === 0 && <div className="muted">暂无通知。</div>}
           {mine.map((n) => (
-            <div key={n.id} className={`notice ${n.level === 'urgent' ? 'urgent' : ''} ${n.kind === 'health' ? 'health' : ''}`}>
+            <div key={n.id} className={`notice ${n.level === 'urgent' ? 'urgent' : ''} ${n.kind === 'health' ? 'health' : ''} ${n.kind === 'substitute' ? 'subnotice' : ''}`}>
               <div>
-                <span className={`badge ${n.level === 'urgent' ? 'red' : 'blue'}`} style={{ marginRight: 8 }}>{KIND_LABEL[n.kind]}</span>
+                <span className={`badge ${n.kind === 'substitute' ? 'purple' : n.level === 'urgent' ? 'red' : 'blue'}`} style={{ marginRight: 8 }}>{KIND_LABEL[n.kind]}</span>
                 {n.programId && <span className="muted">《{programs.find((p) => p.id === n.programId)?.title}》 </span>}
                 {n.text}
               </div>

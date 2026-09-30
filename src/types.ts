@@ -57,6 +57,10 @@ export interface Member {
   healthNotes: string
   /** 是否前排成员 */
   frontRow: boolean
+  /** 身高（cm），临时替位时用于匹配站位视觉效果 */
+  heightCm: number
+  /** 动作熟练度 1-5（5 最熟练），替位推荐依据之一 */
+  proficiency: number
 }
 
 /** 某队员在某节目里的报名记录 */
@@ -93,6 +97,8 @@ export interface FormationChange {
   id: string
   atSegment: string      // 在哪个分段发生队形变化
   desc: string
+  /** 受临时替位影响（需替位队员重点排练的队形变化），null=未受影响，否则记录替位 id */
+  affectedBySub?: string | null
 }
 
 export interface Formation {
@@ -109,6 +115,33 @@ export interface ReviewRecord {
   result: 'approved' | 'changes_requested' | 'rejected'
   comment: string
   at: string
+}
+
+// ============ 临时替位（演出前一天前排请假等突发情况） ============
+
+/** 一次已确认的临时替位 */
+export interface Substitute {
+  id: string
+  programId: string
+  /** 请假/缺席的原站位队员 */
+  absentMemberId: string
+  /** 顶替队员 */
+  subMemberId: string
+  /** 顶替的站位：row 0 为前排 */
+  row: number
+  col: number
+  /** 被标记为受影响的队形变化 id */
+  affectedChangeIds: string[]
+  /** 生成的重点排练名单（替位队员 + 相邻配合队员） */
+  focusMemberIds: string[]
+  /** 确认时替位队员是否参加了最后一次排练（false 则持续提示风险） */
+  attendedLastRehearsal: boolean
+  /** 最后一次排练日期（快照） */
+  lastRehearsalDate: string
+  reason: string
+  confirmedAt: string
+  /** 是否已撤销（撤销后站位恢复） */
+  cancelled: boolean
 }
 
 export interface Program {
@@ -129,6 +162,7 @@ export interface Program {
   segments: Segment[]
   formation: Formation
   reviews: ReviewRecord[]
+  substitutes: Substitute[]   // 临时替位记录
   waitingOrder: number        // 候场顺序号（演出当天）
   createdAt: string
   showDate: string
@@ -160,6 +194,8 @@ export interface CostumeRecord {
   pickedUpBy: string       // 领取人；家属代领时写家属姓名+关系
   returned: boolean
   sizeIssue: string        // 尺码不合适说明，空串表示无问题
+  /** 临时替位候补服装（替位确认时自动建记录，演出后回收，不收押金） */
+  temporary?: boolean
 }
 
 // ============ 排练室（多支队伍共用） ============
@@ -187,7 +223,7 @@ export interface Notice {
   level: 'info' | 'urgent'
   targets: Role[]          // 面向哪些角色
   at: string
-  kind: 'general' | 'health' | 'venue' | 'costume' | 'live' | 'next'
+  kind: 'general' | 'health' | 'venue' | 'costume' | 'live' | 'next' | 'substitute'
 }
 
 // ============ 演出档案 ============

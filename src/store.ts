@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type {
   CheckinStatus, CostumeRecord, CostumeSize, Enrollment, FormationLog,
-  Member, Notice, Photo, Program, Rehearsal, Role, Room, RoomBooking, Stage, Team,
+  Member, Notice, Photo, Program, Rehearsal, Role, Room, RoomBooking, Stage, Substitute, Team,
 } from './types'
 import * as seed from './seed'
 
@@ -14,6 +14,24 @@ const now = () => {
 }
 
 export const STAGE_ORDER: Stage[] = ['signup', 'rehearsing', 'positioning', 'costume', 'review', 'ready', 'showday', 'archived']
+
+/** 替位推荐候选项（按身高匹配、熟练度、排练出勤率综合评分） */
+export interface SubCandidate {
+  memberId: string
+  row: number
+  col: number
+  heightCm: number
+  heightDiff: number
+  proficiency: number
+  /** 排练出勤率 0-1 */
+  attendance: number
+  presents: number
+  total: number
+  /** 是否参加了最后一次排练 */
+  attendedLast: boolean
+  /** 综合评分（越高越合适） */
+  score: number
+}
 
 interface State {
   role: Role
@@ -52,6 +70,11 @@ interface State {
   assignCell: (programId: string, row: number, col: number, memberId: string | null) => void
   shrinkVenue: (programId: string, newCols: string) => void
   addFormationChange: (programId: string, atSegment: string, desc: string) => void
+
+  // 临时替位（演出前一天前排请假）
+  rankSubstitutes: (programId: string, absentMemberId: string) => SubCandidate[]
+  confirmSubstitute: (programId: string, absentMemberId: string, subMemberId: string, reason: string) => string | null
+  cancelSubstitute: (programId: string, subId: string) => void
 
   // 服装
   payDeposit: (memberId: string, programId: string) => void
@@ -103,7 +126,7 @@ export const useStore = create<State>((set, get) => ({
       venueApproval: 'pending' as const, venueNote: '待文化站审批',
       memberIds: [], musicVersions: [], segments: [],
       formation: { rows: 2, cols: 4, cells: [[null, null, null, null], [null, null, null, null]], changes: [] },
-      reviews: [], waitingOrder: s.programs.filter((x) => x.stage === 'ready' || x.stage === 'showday').length + 1,
+      reviews: [], substitutes: [], waitingOrder: s.programs.filter((x) => x.stage === 'ready' || x.stage === 'showday').length + 1,
       createdAt: now(),
     }],
   })),
@@ -205,6 +228,155 @@ export const useStore = create<State>((set, get) => ({
     programs: s.programs.map((p) => p.id === programId
       ? { ...p, formation: { ...p.formation, changes: [...p.formation.changes, { id: nid('fc'), atSegment, desc }] } } : p),
   })),
+
+  // ============ 临时替位 ============
+  rankSubstitutes: (programId, absentMemberId) => {
+    const s = get()
+    const p = s.programs.find((x) => x.id === programId)
+    if (!p) return []
+    // 请假队员的站位
+    let pos: { row: number; col: number } | null = null
+    p.formation.cells.forEach((row, r) => row.forEach((c, ci) => { if (c === absentMemberId) pos = { row: r, col: ci } }))
+    if (!pos) return []
+    const absent = s.members.find((m) => m.id === absentMemberId)
+    if (!absent) return []
+    const placed = placedSet(p)
+    const activeSubs = p.substitutes.filter((x) => !x.cancelled)
+    const subbedIds = new Set(activeSubs.flatMap((x) => [x.absentMemberId, x.subMemberId]))
+    const myRehearsals = s.rehearsals
+      .filter((r) => r.programId === programId && Object.keys(r.checkins).length > 0)
+      .sort((a, b) => b.date.localeCompare(a.date))
+    const last = myRehearsals[0]
+    const candidates = p.memberIds
+      .map((id) => s.members.find((m) => m.id === id))
+      .filter((m): m is Member => !!m)
+      // 可作为替位：本人未占位（候补/待安置），未被其他替位占用，不是请假者本人
+      .filter((m) => m.id !== absentMemberId && !placed.has(m.id) && !subbedIds.has(m.id))
+      .map((m) => {
+        const heightDiff = Math.abs(m.heightCm - absent.heightCm)
+        let presents = 0
+        let total = 0
+        myRehearsals.forEach((r) => {
+          const st = r.checkins[m.id]
+          if (st !== undefined) { total++; if (st === 'present') presents++ }
+        })
+        const attendance = total === 0 ? 0 : presents / total
+        const attendedLast = last?.checkins[m.id] === 'present'
+        // 综合评分：熟练度（40%）+ 出勤（35%）+ 身高匹配（25%），分越高越合适
+        const score = m.proficiency / 5 * 40 + attendance * 35 + Math.max(0, 1 - heightDiff / 10) * 25
+        return {
+          memberId: m.id, row: pos!.row, col: pos!.col,
+          heightCm: m.heightCm, heightDiff,
+          proficiency: m.proficiency, attendance, presents, total,
+          attendedLast, score,
+        }
+      })
+      .sort((a, b) => b.score - a.score)
+    return candidates
+  },
+
+  confirmSubstitute: (programId, absentMemberId, subMemberId, reason) => {
+    const s = get()
+    const p = s.programs.find((x) => x.id === programId)
+    if (!p) return '节目不存在'
+    if (p.substitutes.some((x) => !x.cancelled && x.absentMemberId === absentMemberId)) return '该队员已安排替位'
+    let row = -1, col = -1
+    p.formation.cells.forEach((r, ri) => r.forEach((c, ci) => { if (c === absentMemberId) { row = ri; col = ci } }))
+    if (row < 0) return '请假队员当前不在队形中，无需替位'
+    const placed = placedSet(p)
+    if (placed.has(subMemberId)) return '该替位队员已有站位'
+    const myRehearsals = s.rehearsals
+      .filter((r) => r.programId === programId && Object.keys(r.checkins).length > 0)
+      .sort((a, b) => b.date.localeCompare(a.date))
+    const lastRehearsal = myRehearsals[0]
+    const attendedLastRehearsal = lastRehearsal?.checkins[subMemberId] === 'present'
+
+    // 受影响队形变化：前排请假 → 全部队形变化都需替位队员重练；同时标记该队员原站位参与的变化
+    const affectedChangeIds = p.formation.changes.map((c) => c.id)
+
+    // 重点排练名单：替位队员 + 同排相邻配合队员
+    const focus = new Set<string>([subMemberId])
+    p.formation.cells[row].forEach((c) => { if (c && c !== absentMemberId) focus.add(c) })
+    if (row + 1 < p.formation.rows) p.formation.cells[row + 1].forEach((c) => { if (c) focus.add(c) })
+
+    const subId = nid('sub')
+    const sub: Substitute = {
+      id: subId, programId, absentMemberId, subMemberId, row, col,
+      affectedChangeIds, focusMemberIds: [...focus],
+      attendedLastRehearsal, lastRehearsalDate: lastRehearsal?.date ?? '无排练记录',
+      reason: reason.trim() || '演出前临时请假', confirmedAt: now(), cancelled: false,
+    }
+    const absentName = s.members.find((m) => m.id === absentMemberId)?.name ?? absentMemberId
+    const subName = s.members.find((m) => m.id === subMemberId)?.name ?? subMemberId
+    const enrollment = s.enrollments.find((e) => e.programId === programId && e.memberId === subMemberId)
+
+    set((st) => ({
+      programs: st.programs.map((x) => {
+        if (x.id !== programId) return x
+        const cells = x.formation.cells.map((r) => [...r])
+        cells[row][col] = subMemberId
+        const changes = x.formation.changes.map((c) =>
+          affectedChangeIds.includes(c.id) ? { ...c, affectedBySub: subId } : c)
+        return { ...x, formation: { ...x.formation, cells, changes }, substitutes: [...x.substitutes, sub] }
+      }),
+      // 候补队员自动建临时候补服装记录（不收押金、未领取，服装负责人据此备装）
+      costumes: st.costumes.some((c) => c.programId === programId && c.memberId === subMemberId)
+        ? st.costumes
+        : [...st.costumes, {
+            memberId: subMemberId, programId, size: enrollment?.costumeSize ?? 'M',
+            deposit: 0, depositPaid: true, pickedUp: false, pickedUpBy: '',
+            returned: false, sizeIssue: '', temporary: true,
+          }],
+      formationLogs: [...st.formationLogs, {
+        id: nid('fl'), programId, at: now(),
+        text: `临时替位：${absentName}（${row === 0 ? '前排' : `第${row + 1}排`}${col + 1}号位）演出前请假，由候补队员${subName}顶替；已重新生成走位图与重点排练名单`,
+      }],
+      notices: [
+        ...st.notices,
+        {
+          id: nid('n'), programId, level: 'urgent' as const, kind: 'substitute' as const, at: now(),
+          targets: ['leader', 'member', 'costume', 'sound'] as Role[],
+          text: `《${p.title}》演出清单更新：${absentName}请假，${subName}临时顶替${row === 0 ? '前排' : `第${row + 1}排`}${col + 1}号位。替位队员、服装、音响请按更新后的清单执行。`,
+        },
+        ...(attendedLastRehearsal ? [] : [{
+          id: nid('n'), programId, level: 'urgent' as const, kind: 'substitute' as const, at: now(),
+          targets: ['leader'] as Role[],
+          text: `风险：替位队员${subName}未参加最后一次排练（${sub.lastRehearsalDate}），对新走位与队形变化不熟练，演出前需重点排练并持续核对到场。`,
+        }]),
+      ],
+    }))
+    return null
+  },
+
+  cancelSubstitute: (programId, subId) => set((s) => {
+    const p = s.programs.find((x) => x.id === programId)
+    const sub = p?.substitutes.find((x) => x.id === subId)
+    if (!p || !sub || sub.cancelled) return s
+    const subName = s.members.find((m) => m.id === sub.subMemberId)?.name ?? sub.subMemberId
+    const absentName = s.members.find((m) => m.id === sub.absentMemberId)?.name ?? sub.absentMemberId
+    return {
+      programs: s.programs.map((x) => {
+        if (x.id !== programId) return x
+        const cells = x.formation.cells.map((r) => [...r])
+        // 仅当该格当前仍是替位队员时恢复为请假队员
+        if (cells[sub.row][sub.col] === sub.subMemberId) cells[sub.row][sub.col] = sub.absentMemberId
+        const changes = x.formation.changes.map((c) => c.affectedBySub === subId ? { ...c, affectedBySub: null } : c)
+        return {
+          ...x, formation: { ...x.formation, cells, changes },
+          substitutes: x.substitutes.map((z) => z.id === subId ? { ...z, cancelled: true } : z),
+        }
+      }),
+      formationLogs: [...s.formationLogs, {
+        id: nid('fl'), programId, at: now(),
+        text: `撤销替位：${subName} 不再顶替 ${absentName}，走位恢复原安排`,
+      }],
+      notices: [...s.notices, {
+        id: nid('n'), programId, level: 'info' as const, kind: 'substitute' as const, at: now(),
+        targets: ['leader', 'member', 'costume', 'sound'] as Role[],
+        text: `《${p.title}》演出清单更新：撤销 ${subName} 的临时替位，${absentName} 恢复原站位。`,
+      }],
+    }
+  }),
 
   payDeposit: (memberId, programId) => set((s) => ({
     costumes: s.costumes.map((c) => c.memberId === memberId && c.programId === programId ? { ...c, depositPaid: true } : c),
@@ -316,6 +488,16 @@ export function placedSet(p: Program): Set<string> {
   const s = new Set<string>()
   p.formation.cells.forEach((row) => row.forEach((c) => { if (c) s.add(c) }))
   return s
+}
+
+/** 节目当前生效的临时替位 */
+export function activeSubs(p: Program): Substitute[] {
+  return p.substitutes.filter((x) => !x.cancelled)
+}
+
+/** 存在风险的替位：替位队员未参加最后一次排练（队长端/演出前检查持续提示） */
+export function riskySubs(p: Program): Substitute[] {
+  return activeSubs(p).filter((x) => !x.attendedLastRehearsal)
 }
 
 /** 各阶段是否完成（文化站连续性视角） */

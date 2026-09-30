@@ -1,8 +1,9 @@
-import { useStore, stageDone, absentSet } from '../store'
-import { PIPELINE, STAGE_LABEL } from '../types'
+import { useStore, stageDone, absentSet, riskySubs, activeSubs } from '../store'
+import { PIPELINE, STAGE_LABEL, type Role } from '../types'
 import { useHelpers } from '../helpers'
 
 export default function Dashboard() {
+  const role = useStore((s) => s.role)
   const programs = useStore((s) => s.programs)
   const rehearsals = useStore((s) => s.rehearsals)
   const costumes = useStore((s) => s.costumes)
@@ -11,12 +12,35 @@ export default function Dashboard() {
   const members = useStore((s) => s.members)
   const { teamOf, nameOf } = useHelpers()
 
-  const urgent = notices.filter((n) => n.level === 'urgent')
+  const urgent = notices.filter((n) => n.level === 'urgent' && n.targets.includes(role))
   const sizeIssues = costumes.filter((c) => c.sizeIssue)
   const unpaid = costumes.filter((c) => !c.depositPaid && programs.some((p) => p.id === c.programId && p.stage !== 'archived'))
+  const temporaryCostumes = costumes.filter((c) => c.temporary)
+  const allRiskySubs = programs.flatMap((p) => riskySubs(p).map((x) => ({ p, x })))
+  const allActiveSubs = programs.flatMap((p) => activeSubs(p).map((x) => ({ p, x })))
 
   return (
     <div>
+      {/* 替位风险：队长端持续提示（未参加最后一次排练） */}
+      {role === 'leader' && allRiskySubs.length > 0 && (
+        <div className="alert red sub-risk">
+          ⚠ 替位风险未解除：{allRiskySubs.map(({ p, x }) =>
+            `《${p.title}》${nameOf(x.subMemberId)}顶替${nameOf(x.absentMemberId)}（未参加 ${x.lastRehearsalDate} 最后一次排练）`).join('；')}。
+          请演出前补排走位与队形变化，并在「演出当天」演出前检查中核对到场——检查通过前提示持续存在。
+        </div>
+      )}
+
+      {/* 已更新的演出清单（替位/服装/音响等角色均可见） */}
+      {allActiveSubs.length > 0 && (['leader', 'member', 'costume', 'sound'] as Role[]).includes(role) && (
+        <div className="alert blue">
+          演出清单已按临时替位更新：{allActiveSubs.map(({ p, x }) =>
+            `《${p.title}》${nameOf(x.subMemberId)}→${x.row === 0 ? '前排' : `第${x.row + 1}排`}${x.col + 1}号位（替 ${nameOf(x.absentMemberId)}）`).join('；')}。
+          {role === 'costume' && '请为替位队员准备临时候补服装（押金免收、演出后回收）。'}
+          {role === 'sound' && '请按更新后的人员与曲目执行，候场播报以最新清单为准。'}
+          {role === 'member' && '请相关队员按新走位图参加重点排练。'}
+        </div>
+      )}
+
       {/* 预警区 */}
       {urgent.length > 0 && urgent.map((n) => (
         <div key={n.id} className="alert red">⚠ {n.text}</div>
@@ -48,7 +72,10 @@ export default function Dashboard() {
       {programs.map((p) => {
         const done = stageDone(p, rehearsals, costumes, onsite)
         const absent = absentSet(rehearsals, p.id)
-        const frontAbsent = [...absent.keys()].filter((id) => members.find((m) => m.id === id)?.frontRow)
+        const pSubs = activeSubs(p)
+        const pRisks = riskySubs(p)
+        const covered = new Set(pSubs.map((x) => x.absentMemberId))
+        const frontAbsent = [...absent.keys()].filter((id) => members.find((m) => m.id === id)?.frontRow && !covered.has(id))
         const curIdx = PIPELINE.indexOf(p.stage)
         const broken = p.stage !== 'archived' && PIPELINE.slice(0, curIdx).some((st) => !done[st])
         return (
@@ -95,7 +122,23 @@ export default function Dashboard() {
             {frontAbsent.length > 0 && p.stage !== 'archived' && (
               <div className="alert red mt8">
                 前排缺席影响站位：{frontAbsent.map((id) => nameOf(id)).join('、')}
-                （最近排练{absent.get(frontAbsent[0]) === 'leave' ? '请假' : '未到'}），请尽快安排替补或调整队形。
+                （最近排练{absent.get(frontAbsent[0]) === 'leave' ? '请假' : '未到'}），请尽快在「走位编排」安排临时替位或调整队形。
+              </div>
+            )}
+
+            {/* 临时替位状态 */}
+            {pSubs.length > 0 && p.stage !== 'archived' && (
+              <div className={`alert ${pRisks.length > 0 ? 'red' : 'green'} mt8`}>
+                临时替位已确认：{pSubs.map((x) =>
+                  `${nameOf(x.subMemberId)} 顶替 ${nameOf(x.absentMemberId)}（${x.row === 0 ? '前排' : `第${x.row + 1}排`}${x.col + 1}号位）`).join('；')}。
+                新走位图、重点排练名单已生成，服装/音响/替位队员的演出清单已更新。
+                {pRisks.length > 0 && ` 风险：${pRisks.map((x) => nameOf(x.subMemberId)).join('、')} 未参加最后一次排练，演出前检查将持续提示。`}
+              </div>
+            )}
+            {temporaryCostumes.filter((c) => c.programId === p.id).length > 0 && role === 'costume' && (
+              <div className="alert gold mt8">
+                临时候补服装待备：{temporaryCostumes.filter((c) => c.programId === p.id)
+                  .map((c) => `${nameOf(c.memberId)}（${c.size}码）`).join('、')}，免收押金、演出后回收。
               </div>
             )}
           </div>
