@@ -24,6 +24,13 @@ export default function Costume() {
   let list = costumes.filter((c) => c.programId === program.id)
   if (role === 'member') list = list.filter((c) => c.memberId === currentMemberId)
 
+  // 临时替位：替位队员服装需加急准备
+  const subs = program.substitutions
+  const subRows = subs.map((s) => ({
+    s,
+    costume: costumes.find((c) => c.programId === program.id && c.memberId === s.subMemberId),
+  }))
+
   const stats = {
     total: list.length,
     picked: list.filter((c) => c.pickedUp).length,
@@ -50,6 +57,29 @@ export default function Costume() {
         <div className="muted mt8">每套服装押金 100 元，归还检查无损后退还。家属可凭队员姓名代领，系统记录代领人及关系。</div>
       </div>
 
+      {/* 临时替位：服装负责人收到的更新后演出清单 */}
+      {subRows.length > 0 && (
+        <div className="card" style={{ borderColor: '#7a4fc2' }}>
+          <h3>🎽 替位服装加急准备 <span className="sub">演出前一天替位确认后生成</span></h3>
+          {subRows.map(({ s, costume }) => {
+            const m = members.find((x) => x.id === s.subMemberId)!
+            return (
+              <div key={s.id} className="spread mb8">
+                <span>
+                  <span className="badge" style={{ background: '#efe7fd', color: '#7a4fc2' }}>替位</span>
+                  <b style={{ marginLeft: 6 }}>{m.name}</b>（{m.heightCm}cm · {costume?.size ?? '?'}码）顶替
+                  <b> {members.find((x) => x.id === s.absentMemberId)?.name}</b>
+                  <span className="muted"> · {s.row === 0 ? '前排' : `第${s.row + 1}排`}{s.col + 1}号位</span>
+                </span>
+                {costume?.pickedUp
+                  ? <span className="badge green">已领取（{costume.pickedUpBy}）</span>
+                  : <span className="badge red">未领取 · 请今晚备装并办理押金/领取手续</span>}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       <div className="card">
         <table className="tbl">
           <thead>
@@ -61,9 +91,11 @@ export default function Costume() {
             {list.map((c) => {
               const m = members.find((x) => x.id === c.memberId)!
               const manage = role === 'costume' || role === 'leader'
+              const isSub = subs.some((x) => x.subMemberId === c.memberId)
+              const isGone = subs.some((x) => x.absentMemberId === c.memberId)
               return (
-                <tr key={c.memberId}>
-                  <td><b>{m.name}</b></td>
+                <tr key={c.memberId} style={isSub ? { background: '#f6f0fd' } : undefined}>
+                  <td><b>{m.name}</b>{isSub && <span className="badge" style={{ marginLeft: 6, background: '#efe7fd', color: '#7a4fc2' }}>替位·加急</span>}{isGone && <span className="badge red" style={{ marginLeft: 6 }}>已请假</span>}</td>
                   <td>{m.age}</td>
                   <td><b>{c.size}</b></td>
                   <td>

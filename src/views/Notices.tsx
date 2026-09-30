@@ -3,7 +3,7 @@ import { useStore, healthWatch } from '../store'
 import { ROLE_LABEL, type Role } from '../types'
 
 const KIND_LABEL: Record<string, string> = {
-  general: '一般', health: '健康提醒', venue: '场地', costume: '服装', live: '现场', next: '下次活动',
+  general: '一般', health: '健康提醒', venue: '场地', costume: '服装', live: '现场', next: '下次活动', substitution: '临时替位',
 }
 
 export default function Notices() {

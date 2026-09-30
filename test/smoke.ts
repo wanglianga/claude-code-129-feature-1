@@ -1,4 +1,4 @@
-import { useStore, absentSet, placedSet, stageDone } from '../src/store'
+import { useStore, absentSet, placedSet, stageDone, rankSubstitutes, pendingLeaves, substitutionRisks } from '../src/store'
 
 let pass = 0, fail = 0
 const assert = (cond: boolean, msg: string) => {
@@ -78,6 +78,58 @@ console.log('10. 连续性链条：p4 各环节齐全')
 const p4 = useStore.getState().programs.find((p) => p.id === 'p4')!
 const done = stageDone(p4, useStore.getState().rehearsals, useStore.getState().costumes, useStore.getState().onsite)
 assert(done.signup && done.rehearsing && done.positioning && done.costume && done.review, '报名→排练→走位→服装→审核 均完成')
+
+console.log('11. 演出前一天临时替位：推荐 → 确认 → 新走位/名单/通知 → 风险持续')
+const st0 = useStore.getState()
+let p1now = st0.programs.find((p) => p.id === 'p1')!
+// 种子已预置前排张桂芳(m2)演出前一天请假(l1)；此时队形已在前面用例压缩为6列，m2 仍在 (0,0)
+assert(pendingLeaves(p1now).some((l) => l.memberId === 'm2'), '种子存在未确认的前排请假')
+assert(p1now.formation.cells[0][0] === 'm2', '请假队员仍在原前排站位')
+
+// 推荐：候选 = 未入队形且参加正式演出的队员（m12 不参加正式演出被排除）
+let cands = rankSubstitutes(p1now, 'm2', st0.members, st0.rehearsals, st0.enrollments)
+const candIds = cands.map((c) => c.memberId)
+assert(candIds.includes('m17') && candIds.includes('m18') && !candIds.includes('m12'), '候选含候补m17/m18，排除不参加正式演出的m12')
+const c17 = cands.find((c) => c.memberId === 'm17')!
+const c18 = cands.find((c) => c.memberId === 'm18')!
+assert(c17.atLastRehearsal === true && c18.atLastRehearsal === false, '识别最后一次排练出勤：m17参加/m18未参加')
+assert(c17.heightDiff === 1 && c18.heightDiff === 3, '身高差按与请假队员(160cm)计算')
+assert(cands[0].memberId === 'm17', '综合推荐首选为参加最后排练且身高更接近的 m17')
+assert(c17.score > c18.score, '首选综合分高于未参加最后排练者')
+
+// 队长确认 m17 替位
+s.confirmSubstitution('p1', pendingLeaves(useStore.getState().programs.find((p) => p.id === 'p1')!).find((l) => l.memberId === 'm2')!.id, 'm17')
+p1now = useStore.getState().programs.find((p) => p.id === 'p1')!
+assert(p1now.formation.cells[0][0] === 'm17', '新走位图：替位队员顶上请假队员站位')
+assert(pendingLeaves(p1now).length === 0, '请假标记为已处理')
+const sub1 = p1now.substitutions.find((x) => x.subMemberId === 'm17')!
+assert(sub1.row === 0 && sub1.col === 0 && sub1.subAtLastRehearsal === true, '替位记录保存站位与最后排练出勤快照')
+assert(p1now.formation.changes.every((c) => c.affectedBySub), '受影响队形变化被自动标记')
+assert(sub1.focusMemberIds.includes('m17') && sub1.focusMemberIds.length >= 2, '生成重点排练名单（含替位与相邻配合队员）')
+assert(useStore.getState().formationLogs.some((l) => l.programId === 'p1' && l.text.includes('临时替位')), '生成走位调整记录')
+const subNotices = useStore.getState().notices.filter((n) => n.kind === 'substitution' && n.programId === 'p1')
+assert(subNotices.some((n) => n.targets.includes('costume')), '通知服装负责人更新清单')
+assert(subNotices.some((n) => n.targets.includes('sound')), '通知音响师更新清单')
+assert(subNotices.some((n) => n.targets.includes('member')), '通知替位队员')
+assert(substitutionRisks(p1now).length === 0, 'm17 参加最后排练 → 无持续风险')
+assert(!!useStore.getState().costumes.find((c) => c.programId === 'p1' && c.memberId === 'm17'), '替位队员服装记录在案（负责人可加急备装）')
+
+// 风险场景：前排 m1 再请假，唯一候选 m18（未参加最后一次排练）
+s.registerPreShowLeave('p1', 'm1', '突发高烧')
+p1now = useStore.getState().programs.find((p) => p.id === 'p1')!
+const leaveM1 = pendingLeaves(p1now).find((l) => l.memberId === 'm1')!
+cands = rankSubstitutes(p1now, 'm1', useStore.getState().members, useStore.getState().rehearsals, useStore.getState().enrollments)
+assert(cands.some((c) => c.memberId === 'm18' && !c.atLastRehearsal), 'm18 作为候选且被识别为未参加最后排练')
+s.confirmSubstitution('p1', leaveM1.id, 'm18')
+p1now = useStore.getState().programs.find((p) => p.id === 'p1')!
+const sub2 = p1now.substitutions.find((x) => x.subMemberId === 'm18')!
+assert(p1now.formation.cells[0][2] === 'm18', 'm18 顶上 m1 的前排3号位')
+assert(sub2.subAtLastRehearsal === false, '替位记录快照：m18 未参加最后一次排练')
+const risks = substitutionRisks(p1now)
+assert(risks.length === 1 && risks[0].subMemberId === 'm18', '队长端持续风险提示（不可解除）')
+assert(useStore.getState().notices.some((n) => n.kind === 'substitution' && n.targets.includes('leader') && n.text.includes('替位风险')), '生成队长专属风险通知')
+// 再次调用选择器，风险依旧存在（演出前检查持续提示）
+assert(substitutionRisks(useStore.getState().programs.find((p) => p.id === 'p1')!).length === 1, '风险不会被自动消除')
 
 console.log(`\n结果：${pass} 通过，${fail} 失败`)
 if (fail > 0) process.exit(1)

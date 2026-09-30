@@ -1,8 +1,9 @@
-import { useStore, stageDone, absentSet } from '../store'
+import { useStore, stageDone, absentSet, substitutionRisks, pendingLeaves } from '../store'
 import { PIPELINE, STAGE_LABEL } from '../types'
 import { useHelpers } from '../helpers'
 
 export default function Dashboard() {
+  const role = useStore((s) => s.role)
   const programs = useStore((s) => s.programs)
   const rehearsals = useStore((s) => s.rehearsals)
   const costumes = useStore((s) => s.costumes)
@@ -15,11 +16,29 @@ export default function Dashboard() {
   const sizeIssues = costumes.filter((c) => c.sizeIssue)
   const unpaid = costumes.filter((c) => !c.depositPaid && programs.some((p) => p.id === c.programId && p.stage !== 'archived'))
 
+  // 演出前一天临时替位：未确认请假 + 未参加最后一次排练的替位风险（队长端持续提示）
+  const subPrograms = programs.filter((p) => p.stage !== 'archived' &&
+    (pendingLeaves(p).length > 0 || substitutionRisks(p).length > 0))
+
   return (
     <div>
       {/* 预警区 */}
       {urgent.length > 0 && urgent.map((n) => (
         <div key={n.id} className="alert red">⚠ {n.text}</div>
+      ))}
+
+      {/* 临时替位：队长端持续提示（未确认请假 / 替位未参加最后一次排练） */}
+      {role === 'leader' && subPrograms.map((p) => (
+        <div key={`sub-${p.id}`} className="alert red sub-risk">
+          🚨 《{p.title}》演出前替位提醒：
+          {pendingLeaves(p).map((l) => (
+            <span key={l.id}> 前排 {nameOf(l.memberId)} 请假<b>尚未确认替位</b>，请到「走位编排」处理；</span>
+          ))}
+          {substitutionRisks(p).map((s) => (
+            <span key={s.id}> 替位 {nameOf(s.subMemberId)} <b>未参加最后一次排练（{s.lastRehearsalDate}）</b>，
+            顶替 {nameOf(s.absentMemberId)} 的{ s.row === 0 ? '前排' : `第${s.row + 1}排`}{s.col + 1}号位——风险持续提示中，演出前检查页同步提醒。</span>
+          ))}
+        </div>
       ))}
 
       <div className="grid3">

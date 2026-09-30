@@ -57,6 +57,10 @@ export interface Member {
   healthNotes: string
   /** 是否前排成员 */
   frontRow: boolean
+  /** 身高（cm），临时替位匹配依据 */
+  heightCm: number
+  /** 动作熟练度 1-5（5=熟练，可独立完成全部队形变化） */
+  proficiency: number
 }
 
 /** 某队员在某节目里的报名记录 */
@@ -93,7 +97,8 @@ export interface FormationChange {
   id: string
   atSegment: string      // 在哪个分段发生队形变化
   desc: string
-}
+  /** 受临时替位影响、需要替位队员重点排练的变化 */
+  affectedBySub?: boolean}
 
 export interface Formation {
   rows: number
@@ -101,6 +106,37 @@ export interface Formation {
   /** cells[r][c] = memberId | null；row 0 为前排 */
   cells: (string | null)[][]
   changes: FormationChange[]
+}
+
+/** 演出前一天前排队员请假登记（未确认替位前的待处理状态） */
+export interface PreShowLeave {
+  id: string
+  memberId: string
+  reason: string
+  at: string
+  /** 已确认的替位记录 id；确认后该请假视为已处理 */
+  substitutionId?: string
+}
+
+/** 临时替位记录 */
+export interface Substitution {
+  id: string
+  /** 请假的前排队员 */
+  absentMemberId: string
+  /** 替位队员 */
+  subMemberId: string
+  /** 顶替的站位 row/col（row 0 为前排） */
+  row: number
+  col: number
+  at: string
+  /** 确认时最后一次排练的日期，用于判断替位是否参加过最后一次排练 */
+  lastRehearsalDate: string
+  /** 确认时替位队员在最后一次排练是否出勤（false → 持续风险提示） */
+  subAtLastRehearsal: boolean
+  /** 受影响的队形变化（确认时自动标记） */
+  affectedChangeIds: string[]
+  /** 确认时生成的重点排练名单（替位 + 与其配合的相邻站位队员） */
+  focusMemberIds: string[]
 }
 
 export interface ReviewRecord {
@@ -128,6 +164,10 @@ export interface Program {
   musicVersions: MusicVersion[]
   segments: Segment[]
   formation: Formation
+  /** 演出前一天的前排请假登记 */
+  preShowLeaves: PreShowLeave[]
+  /** 临时替位记录 */
+  substitutions: Substitution[]
   reviews: ReviewRecord[]
   waitingOrder: number        // 候场顺序号（演出当天）
   createdAt: string
@@ -187,7 +227,7 @@ export interface Notice {
   level: 'info' | 'urgent'
   targets: Role[]          // 面向哪些角色
   at: string
-  kind: 'general' | 'health' | 'venue' | 'costume' | 'live' | 'next'
+  kind: 'general' | 'health' | 'venue' | 'costume' | 'live' | 'next' | 'substitution'
 }
 
 // ============ 演出档案 ============
